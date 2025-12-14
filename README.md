@@ -9,4 +9,6 @@
  - https://github.com/nokia/nlc2cmd-submission-hubris
  - https://github.com/magnumresearchgroup/Magnum-NLC2CMD
  - https://www.kaggle.com/code/ksmooi/fine-tuning-qwen2-5-3b-instruct-grpo-peft
-
+ - https://gist.github.com/willccbb/4676755236bb08cab5f4e54a0475d6fb
+ - https://gist.github.com/qunash/820c86d1d267ec8051d9f68b4f4bb656
+ - 
