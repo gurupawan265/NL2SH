@@ -1,0 +1,11 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+
+# Vector Database (This is large and generated from the CSV)
+bash_index/
+nl2sh_db/
+
+# OS files
+.DS_Store
