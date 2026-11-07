@@ -9,6 +9,15 @@ from .corpus import CorpusDocument, load_corpus, validate_corpus_record
 from .embedder import BaseEmbedder, MockEmbedder, SentenceTransformerEmbedder
 from .retriever import BashRetriever, RetrievalResult
 from .vector_store import FAISSVectorStore
+from .prompt_builder import PromptBuilder
+from .validator import CommandValidator, ValidationResult
+from .generator import (
+    BaseCommandGenerator,
+    GenerationResult,
+    MockCommandGenerator,
+    OllamaCommandGenerator,
+)
+from .pipeline import RAGPipeline
 
 import sys
 # Alias 'rag' in sys.modules for case-insensitive compatibility
@@ -25,4 +34,12 @@ __all__ = [
     "FAISSVectorStore",
     "BashRetriever",
     "RetrievalResult",
+    "PromptBuilder",
+    "CommandValidator",
+    "ValidationResult",
+    "BaseCommandGenerator",
+    "GenerationResult",
+    "MockCommandGenerator",
+    "OllamaCommandGenerator",
+    "RAGPipeline",
 ]

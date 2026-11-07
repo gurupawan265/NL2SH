@@ -208,3 +208,4 @@ py -3.11 Scripts/evaluate_retrieval.py
 # 4. Run test suite
 py -3.11 -m pytest tests/test_rag_corpus.py tests/test_rag_vector_store.py tests/test_rag_retrieval.py -v
 ```
+
