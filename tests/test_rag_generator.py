@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from RAG.generator import (
     BaseCommandGenerator,
     GenerationResult,
+    GroqCommandGenerator,
     MockCommandGenerator,
     OllamaCommandGenerator,
 )
@@ -120,4 +121,161 @@ def test_generation_result_to_dict():
     assert d["command"] == "ls -l"
     assert d["provider_name"] == "mock"
     assert d["is_valid"] is True
+
+
+def test_groq_missing_api_key_raises_error(monkeypatch):
+    """Test that missing GROQ_API_KEY raises a clear ValueError on initialization."""
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    # Also patch load_env_file so it doesn't read the disk .env file in this test
+    monkeypatch.setattr("RAG.generator.load_env_file", lambda *args, **kwargs: None)
+
+    with pytest.raises(ValueError) as excinfo:
+        GroqCommandGenerator(api_key=None)
+    assert "GROQ_API_KEY is missing or empty" in str(excinfo.value)
+
+
+def test_groq_provider_configuration(monkeypatch):
+    """Test GroqCommandGenerator configuration and model selection."""
+    gen = GroqCommandGenerator(
+        api_key="test-api-key",
+        model_name="custom-code-model",
+    )
+    assert gen.provider_name == "groq"
+    assert gen.model_name == "custom-code-model"
+    assert gen.timeout == 15.0
+
+
+def test_groq_successful_mocked_sdk_response(sample_context):
+    """Test successful command generation using mocked Groq SDK client."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_choice = MagicMock()
+    mock_choice.message.content = "find /workspace -name '*.txt'"
+    mock_resp = MagicMock()
+    mock_resp.choices = [mock_choice]
+    mock_resp.usage.model_dump.return_value = {
+        "prompt_tokens": 42,
+        "completion_tokens": 12,
+        "total_tokens": 54,
+    }
+
+    mock_client.chat.completions.create.return_value = mock_resp
+
+    gen = GroqCommandGenerator(
+        api_key="test-api-key",
+        model_name="qwen/qwen3.8-27b",
+        client=mock_client,
+    )
+
+    res = gen.generate("Find text files", sample_context)
+
+    assert res.is_valid is True
+    assert res.command == "find /workspace -name '*.txt'"
+    assert res.provider_name == "groq"
+    assert res.model_name == "qwen/qwen3.8-27b"
+    assert res.token_usage == {
+        "prompt_tokens": 42,
+        "completion_tokens": 12,
+        "total_tokens": 54,
+    }
+    assert res.latency is not None
+
+
+def test_groq_authentication_failure_handled_and_redacted(sample_context):
+    """Test that authentication error is handled, returned as rejection, and key is redacted."""
+    from unittest.mock import MagicMock
+    import groq
+
+    mock_client = MagicMock()
+    # Simulate an auth error from groq with sensitive key info
+    secret_key = "gsk_supersecretkey1234567890abcdef"
+    auth_err = groq.AuthenticationError(
+        f"Invalid token: Bearer {secret_key}",
+        response=MagicMock(status_code=401),
+        body={"error": {"message": f"Invalid key {secret_key}"}},
+    )
+    mock_client.chat.completions.create.side_effect = auth_err
+
+    gen = GroqCommandGenerator(
+        api_key=secret_key,
+        client=mock_client,
+    )
+
+    res = gen.generate("List files", sample_context)
+
+    assert res.is_valid is False
+    assert res.command == ""
+    assert res.provider_name == "groq"
+    assert "authentication failed" in res.rejection_reason
+    # STRICT SECURITY: Secret key must NEVER appear in rejection reason
+    assert secret_key not in res.rejection_reason
+    assert "[REDACTED" in res.rejection_reason
+
+
+def test_groq_rate_limit_failure_handled(sample_context):
+    """Test that rate limit error is handled cleanly without crashing."""
+    from unittest.mock import MagicMock
+    import groq
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = groq.RateLimitError(
+        "Rate limit exceeded: 30 requests per minute",
+        response=MagicMock(status_code=429),
+        body={"error": {"message": "Rate limit exceeded"}},
+    )
+
+    gen = GroqCommandGenerator(
+        api_key="test-key",
+        client=mock_client,
+    )
+
+    res = gen.generate("List files", sample_context)
+
+    assert res.is_valid is False
+    assert "rate limit" in res.rejection_reason.lower()
+
+
+def test_groq_timeout_handling(sample_context):
+    """Test that request timeout is handled cleanly."""
+    from unittest.mock import MagicMock
+    import groq
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = groq.APITimeoutError(
+        request=MagicMock()
+    )
+
+    gen = GroqCommandGenerator(
+        api_key="test-key",
+        client=mock_client,
+        timeout=5.0,
+    )
+
+    res = gen.generate("List files", sample_context)
+
+    assert res.is_valid is False
+    assert "timed out" in res.rejection_reason.lower()
+
+
+def test_groq_no_silent_fallback_to_mock(sample_context):
+    """Ensure Groq provider NEVER falls back silently to Mock or Ollama on failure."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.side_effect = RuntimeError("Fatal Groq API failure")
+
+    gen = GroqCommandGenerator(
+        api_key="test-key",
+        client=mock_client,
+    )
+
+    res = gen.generate("List files", sample_context)
+
+    assert res.is_valid is False
+    assert res.command == ""
+    # Provider remains strictly 'groq', never 'mock'
+    assert res.provider_name == "groq"
+    assert res.command != "ls -la"
+
 

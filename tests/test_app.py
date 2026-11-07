@@ -465,3 +465,52 @@ def test_main_cli_rag_init_error(capsys, monkeypatch):
     assert "RAG initialization error: Vector index missing" in captured
 
 
+def test_init_rag_pipeline_groq_success(mock_vector_store):
+    """Test initializing RAG pipeline with Groq provider."""
+    store, emb = mock_vector_store
+    pipeline = init_rag_pipeline(
+        provider="groq",
+        api_key="test-key",
+        model_name="qwen/qwen3.8-27b",
+        vector_store=store,
+        embedder=emb,
+    )
+    assert pipeline.generator.provider_name == "groq"
+    assert pipeline.generator.model_name == "qwen/qwen3.8-27b"
+
+
+def test_init_rag_pipeline_groq_missing_key_error(mock_vector_store, monkeypatch):
+    """Test initializing RAG pipeline with Groq provider fails cleanly if key is missing."""
+    store, emb = mock_vector_store
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setattr("RAG.generator.load_env_file", lambda *args, **kwargs: None)
+
+    with pytest.raises(ValueError) as excinfo:
+        init_rag_pipeline(
+            provider="groq",
+            api_key=None,
+            vector_store=store,
+            embedder=emb,
+        )
+    assert "GROQ_API_KEY is missing or empty" in str(excinfo.value)
+
+
+def test_main_cli_groq_provider_selection(mock_vector_store, monkeypatch):
+    """Test CLI main() with --mode rag and --provider groq."""
+    store, emb = mock_vector_store
+
+    mock_pipeline = MagicMock()
+    mock_pipeline.generator.provider_name = "groq"
+    monkeypatch.setattr("app.init_rag_pipeline", lambda **kwargs: mock_pipeline)
+
+    mock_session = MagicMock()
+    mock_session.current_dir = "/workspace"
+    monkeypatch.setattr("app.SessionSandbox", lambda: mock_session)
+
+    inputs = iter(["exit"])
+    main(["--mode", "rag", "--provider", "groq", "--model", "qwen/qwen3.8-27b"], input_func=lambda _: next(inputs))
+
+    mock_session.close.assert_called_once()
+
+
+

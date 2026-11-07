@@ -84,8 +84,9 @@ def run_in_docker(command: str, timeout: float = 10.0) -> CommandResult:
 
 def init_rag_pipeline(
     provider: str = "mock",
-    model_name: str = "qwen2.5-coder:1.5b",
+    model_name: Optional[str] = None,
     base_url: str = "http://localhost:11434",
+    api_key: Optional[str] = None,
     embedder: Any = None,
     vector_store: Any = None,
     canned_responses: Optional[Dict[str, str]] = None,
@@ -97,7 +98,11 @@ def init_rag_pipeline(
     """
     from RAG.config import RAGConfig
     from RAG.embedder import SentenceTransformerEmbedder
-    from RAG.generator import MockCommandGenerator, OllamaCommandGenerator
+    from RAG.generator import (
+        GroqCommandGenerator,
+        MockCommandGenerator,
+        OllamaCommandGenerator,
+    )
     from RAG.pipeline import RAGPipeline
     from RAG.retriever import BashRetriever
     from RAG.vector_store import FAISSVectorStore
@@ -132,17 +137,23 @@ def init_rag_pipeline(
         generator = MockCommandGenerator(
             canned_responses=canned_responses,
             default_response=default_mock_response,
-            model_name="mock-model-v1",
+            model_name=model_name or "mock-model-v1",
         )
     elif prov_clean == "ollama":
         generator = OllamaCommandGenerator(
-            model_name=model_name,
+            model_name=model_name or "qwen2.5-coder:1.5b",
             base_url=base_url,
             timeout=10.0,
         )
+    elif prov_clean == "groq":
+        generator = GroqCommandGenerator(
+            api_key=api_key,
+            model_name=model_name,
+            timeout=15.0,
+        )
     else:
         raise ValueError(
-            f"Unsupported provider '{provider}'. Supported providers are: 'mock', 'ollama'."
+            f"Unsupported provider '{provider}'. Supported providers are: 'mock', 'ollama', 'groq'."
         )
 
     return RAGPipeline(retriever=retriever, generator=generator)
@@ -316,14 +327,14 @@ def main(argv: Optional[List[str]] = None, input_func=None, print_func=None) -> 
     )
     parser.add_argument(
         "--provider",
-        choices=["mock", "ollama"],
+        choices=["mock", "ollama", "groq"],
         default="mock",
-        help="Model provider in RAG mode ('mock' or 'ollama'). Default: mock."
+        help="Model provider in RAG mode ('mock', 'ollama', or 'groq'). Default: mock."
     )
     parser.add_argument(
         "--model",
-        default="qwen2.5-coder:1.5b",
-        help="Model name for Ollama provider. Default: qwen2.5-coder:1.5b."
+        default=None,
+        help="Model name for provider. Defaults: qwen2.5-coder:1.5b (ollama), qwen/qwen3.8-27b (groq)."
     )
     parser.add_argument(
         "--ollama-url",
