@@ -1,0 +1,31 @@
+{"query_id": "rq_01", "instruction": "Find all Python files modified in the past 24 hours", "relevant_commands": ["find"]}
+{"query_id": "rq_02", "instruction": "Search for lines containing the word ERROR case-insensitively in server.log", "relevant_commands": ["grep"]}
+{"query_id": "rq_03", "instruction": "Make a shell script executable for the owner", "relevant_commands": ["chmod"]}
+{"query_id": "rq_04", "instruction": "Set permissions of a secret key file so only the owner can read and write it", "relevant_commands": ["chmod"]}
+{"query_id": "rq_05", "instruction": "Recursively copy the src directory to a backup folder", "relevant_commands": ["cp"]}
+{"query_id": "rq_06", "instruction": "Rename an old log file to archive.log", "relevant_commands": ["mv"]}
+{"query_id": "rq_07", "instruction": "Delete a temporary file without prompting", "relevant_commands": ["rm"]}
+{"query_id": "rq_08", "instruction": "Create nested directories path/to/project if they do not exist", "relevant_commands": ["mkdir"]}
+{"query_id": "rq_09", "instruction": "List all files including hidden dotfiles with file sizes and permissions", "relevant_commands": ["ls"]}
+{"query_id": "rq_10", "instruction": "Display the current absolute working directory path", "relevant_commands": ["pwd"]}
+{"query_id": "rq_11", "instruction": "Switch back to the previous working directory", "relevant_commands": ["cd"]}
+{"query_id": "rq_12", "instruction": "Replace every occurrence of foo with bar in a text file", "relevant_commands": ["sed"]}
+{"query_id": "rq_13", "instruction": "Print the second and fourth colon-delimited columns of a file", "relevant_commands": ["awk", "cut"]}
+{"query_id": "rq_14", "instruction": "Sort a list of numbers in descending numerical order", "relevant_commands": ["sort"]}
+{"query_id": "rq_15", "instruction": "Count duplicate lines and show their occurrence frequencies", "relevant_commands": ["uniq", "sort"]}
+{"query_id": "rq_16", "instruction": "Count the total number of lines in a file without printing the filename", "relevant_commands": ["wc"]}
+{"query_id": "rq_17", "instruction": "Show the first 10 lines of a document", "relevant_commands": ["head"]}
+{"query_id": "rq_18", "instruction": "Follow and monitor new lines being appended to a log file in real time", "relevant_commands": ["tail"]}
+{"query_id": "rq_19", "instruction": "Create a compressed tar.gz archive of the workspace directory", "relevant_commands": ["tar"]}
+{"query_id": "rq_20", "instruction": "Extract all contents from an archive into a target directory", "relevant_commands": ["tar"]}
+{"query_id": "rq_21", "instruction": "Compare two text files and output their differences in unified diff format", "relevant_commands": ["diff"]}
+{"query_id": "rq_22", "instruction": "Convert all lowercase letters in an input stream to uppercase", "relevant_commands": ["tr"]}
+{"query_id": "rq_23", "instruction": "Pipe the output of find into wc to count how many files exist", "relevant_commands": ["pipes", "wc", "find"]}
+{"query_id": "rq_24", "instruction": "Redirect command output to a file and overwrite existing contents", "relevant_commands": ["redirection"]}
+{"query_id": "rq_25", "instruction": "Append command output and error logs to an existing build.log file", "relevant_commands": ["redirection"]}
+{"query_id": "rq_26", "instruction": "Save the standard output of a command into a shell variable", "relevant_commands": ["command_substitution", "variables"]}
+{"query_id": "rq_27", "instruction": "Prevent variable expansion and treat all characters literally with quotes", "relevant_commands": ["quoting"]}
+{"query_id": "rq_28", "instruction": "Execute a second command only if the first command exits with success status 0", "relevant_commands": ["chaining"]}
+{"query_id": "rq_29", "instruction": "Find all zero-byte empty files in the project folder", "relevant_commands": ["find"]}
+{"query_id": "rq_30", "instruction": "Recursively search all files in the current directory for a specific function name", "relevant_commands": ["grep"]}
+
