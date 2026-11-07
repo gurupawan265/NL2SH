@@ -1,0 +1,3 @@
+{"candidate_id": "quar_eval_001", "instruction": "Fetch http://example.com/data.tar.gz", "command": "curl -O http://example.com/data.tar.gz", "quarantine_reason": "network_access_forbidden_in_sandbox"}
+{"candidate_id": "quar_eval_002", "instruction": "Restart nginx web service", "command": "sudo systemctl restart nginx", "quarantine_reason": "privileged_command_requires_root_and_systemd"}
+{"candidate_id": "quar_eval_003", "instruction": "Export VM state", "command": "qm export 101 /path", "quarantine_reason": "unavailable_third_party_tool_qm"}

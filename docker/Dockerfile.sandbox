@@ -1,0 +1,39 @@
+FROM ubuntu:24.04
+
+# Prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install required Linux utilities for NL2SH execution
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    coreutils \
+    findutils \
+    grep \
+    sed \
+    gawk \
+    curl \
+    tar \
+    gzip \
+    iproute2 \
+    procps \
+    util-linux \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# In Ubuntu 24.04, an 'ubuntu' user with UID/GID 1000 may exist by default.
+# Remove it if present, then create 'sandboxuser' with UID 1000 and GID 1000.
+RUN if id -u ubuntu >/dev/null 2>&1; then userdel -r ubuntu 2>/dev/null || true; fi && \
+    if getent group ubuntu >/dev/null 2>&1; then groupdel ubuntu 2>/dev/null || true; fi && \
+    groupadd -g 1000 sandboxuser && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash sandboxuser
+
+# Create workspace directory owned by sandboxuser
+RUN mkdir -p /workspace && chown -R sandboxuser:sandboxuser /workspace
+
+# Set default user and working directory
+USER sandboxuser
+WORKDIR /workspace
+
+# Keep container alive by default when started
+CMD ["sleep", "infinity"]
+
