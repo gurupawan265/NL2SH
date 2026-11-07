@@ -72,6 +72,7 @@ def run_inspect_mode(config: SFTTrainingConfig) -> None:
 def build_training_pipeline(
     config: SFTTrainingConfig,
     dry_run: bool = False,
+    resume: bool = False,
     max_train_samples: Optional[int] = None,
     max_val_samples: Optional[int] = None,
 ) -> None:
@@ -213,8 +214,19 @@ def build_training_pipeline(
     )
 
     # 8. Train & Save
+    resume_from_checkpoint = None
+    if resume:
+        import glob
+        checkpoints = sorted(
+            glob.glob(os.path.join(config.output_dir, "checkpoint-*")),
+            key=lambda x: int(x.split("-")[-1]) if x.split("-")[-1].isdigit() else 0,
+        )
+        if checkpoints:
+            resume_from_checkpoint = checkpoints[-1]
+            print(f"[Resume] Found checkpoint to resume: {resume_from_checkpoint}")
+
     print("Starting SFT training...")
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     print(f"Saving fine-tuned LoRA adapter to {config.adapter_output_dir}...")
     model.save_pretrained(config.adapter_output_dir)
@@ -233,6 +245,7 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=None, help="Override learning rate")
     parser.add_argument("--batch-size", type=int, default=None, help="Override per-device train batch size")
     parser.add_argument("--output-dir", default=None, help="Override checkpoint output directory")
+    parser.add_argument("--resume", action="store_true", help="Resume training from latest checkpoint in output_dir")
 
     args = parser.parse_args()
 
@@ -259,6 +272,7 @@ def main() -> None:
         build_training_pipeline(
             cfg,
             dry_run=args.dry_run,
+            resume=args.resume,
             max_train_samples=args.max_train_samples,
             max_val_samples=args.max_val_samples,
         )
