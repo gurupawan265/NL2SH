@@ -98,7 +98,7 @@ def build_training_pipeline(
         TrainingArguments,
     )
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-    from trl import SFTTrainer
+    from trl import DataCollatorForCompletionOnlyLM, SFTTrainer
 
     if not torch.cuda.is_available():
         print("[Warning] CUDA is not available. SFT training on CPU is not recommended.", file=sys.stderr)
@@ -194,6 +194,12 @@ def build_training_pipeline(
         remove_unused_columns=False,
     )
 
+    # Response-only loss masking: masks user and system tokens so loss is computed ONLY on bash command tokens
+    collator = DataCollatorForCompletionOnlyLM(
+        response_template=config.response_template,
+        tokenizer=tokenizer,
+    )
+
     # 7. SFT Trainer
     trainer = SFTTrainer(
         model=model,
@@ -201,6 +207,7 @@ def build_training_pipeline(
         eval_dataset=val_dataset,
         dataset_text_field="text",
         max_seq_length=config.max_seq_length,
+        data_collator=collator,
         tokenizer=tokenizer,
         args=training_args,
     )
@@ -259,3 +266,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -251,3 +251,4 @@ NL2SH TRI-MODEL EVALUATION COMPARISON BENCHMARK
    - Run the 100-task development benchmark on Qwen SFT with RAG.
    - Evaluate against the official 300-task test set (`alfa_test.csv`) inside Docker containers.
    - Document final semantic pass rates, latency gains, and efficiency metrics.
+

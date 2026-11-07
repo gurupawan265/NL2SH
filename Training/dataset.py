@@ -205,3 +205,4 @@ def get_dataset_statistics(
         "avg_command_word_length": round(sum(cmd_lengths) / len(cmd_lengths), 2),
         "max_command_word_length": max(cmd_lengths),
     }
+

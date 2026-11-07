@@ -39,7 +39,8 @@ def test_sft_config_defaults_and_yaml_roundtrip(tmp_path):
     """Test SFTTrainingConfig defaults and YAML serialization roundtrip."""
     cfg = SFTTrainingConfig()
     assert cfg.model_name_or_path == "Qwen/Qwen2.5-Coder-3B-Instruct"
-    assert cfg.max_seq_length == 256
+    assert cfg.max_seq_length == 384
+    assert cfg.response_template == "<|im_start|>assistant\n"
     assert cfg.lora_r == 16
     assert cfg.lora_alpha == 32
     assert "q_proj" in cfg.lora_target_modules

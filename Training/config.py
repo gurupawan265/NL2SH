@@ -24,8 +24,9 @@ class SFTTrainingConfig:
     adapter_output_dir: str = "adapters/qwen2.5-coder-3b-nl2sh-sft"
 
     # Context & Tokenizer Limits
-    max_seq_length: int = 256
+    max_seq_length: int = 384
     padding_side: str = "right"
+    response_template: str = "<|im_start|>assistant\n"
 
     # PEFT / LoRA Hyperparameters
     use_peft: bool = True
@@ -123,3 +124,4 @@ class SFTTrainingConfig:
                 "total_estimated_vram": "~12.0 - 14.0 GB VRAM",
                 "recommended_hardware": "NVIDIA A100 (40/80 GB), L4 (24 GB), or A10G (24 GB)",
             }
+

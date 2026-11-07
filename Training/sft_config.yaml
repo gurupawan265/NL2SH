@@ -7,8 +7,9 @@ val_file: "data/processed/val.jsonl"
 output_dir: "checkpoints/qwen2.5-coder-3b-nl2sh-sft"
 adapter_output_dir: "adapters/qwen2.5-coder-3b-nl2sh-sft"
 
-max_seq_length: 256
+max_seq_length: 384
 padding_side: "right"
+response_template: "<|im_start|>assistant\n"
 
 use_peft: true
 lora_r: 16
@@ -50,3 +51,4 @@ save_steps: 200
 save_total_limit: 2
 seed: 42
 report_to: "none"
+
