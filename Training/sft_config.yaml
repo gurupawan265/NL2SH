@@ -1,0 +1,52 @@
+# NL2SH Supervised Fine-Tuning (SFT) Configuration
+# Optimized for Qwen2.5-Coder-3B-Instruct with QLoRA on Google Colab T4 / L4 / A100
+
+model_name_or_path: "Qwen/Qwen2.5-Coder-3B-Instruct"
+train_file: "data/processed/train.jsonl"
+val_file: "data/processed/val.jsonl"
+output_dir: "checkpoints/qwen2.5-coder-3b-nl2sh-sft"
+adapter_output_dir: "adapters/qwen2.5-coder-3b-nl2sh-sft"
+
+max_seq_length: 256
+padding_side: "right"
+
+use_peft: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules:
+  - "q_proj"
+  - "k_proj"
+  - "v_proj"
+  - "o_proj"
+  - "gate_proj"
+  - "up_proj"
+  - "down_proj"
+
+per_device_train_batch_size: 4
+per_device_eval_batch_size: 4
+gradient_accumulation_steps: 4
+num_train_epochs: 3
+learning_rate: 0.0002
+warmup_ratio: 0.03
+lr_scheduler_type: "cosine"
+weight_decay: 0.01
+
+load_in_4bit: true
+load_in_8bit: false
+bnb_4bit_quant_type: "nf4"
+bnb_4bit_use_double_quant: true
+bnb_4bit_compute_dtype: "bfloat16"
+bf16: true
+fp16: false
+gradient_checkpointing: true
+optim: "paged_adamw_8bit"
+
+logging_steps: 50
+eval_strategy: "steps"
+eval_steps: 200
+save_strategy: "steps"
+save_steps: 200
+save_total_limit: 2
+seed: 42
+report_to: "none"

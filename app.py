@@ -87,6 +87,7 @@ def init_rag_pipeline(
     model_name: Optional[str] = None,
     base_url: str = "http://localhost:11434",
     api_key: Optional[str] = None,
+    adapter_path: Optional[str] = None,
     embedder: Any = None,
     vector_store: Any = None,
     canned_responses: Optional[Dict[str, str]] = None,
@@ -102,6 +103,7 @@ def init_rag_pipeline(
         GroqCommandGenerator,
         MockCommandGenerator,
         OllamaCommandGenerator,
+        QwenSFTCommandGenerator,
     )
     from RAG.pipeline import RAGPipeline
     from RAG.retriever import BashRetriever
@@ -151,9 +153,14 @@ def init_rag_pipeline(
             model_name=model_name,
             timeout=15.0,
         )
+    elif prov_clean in ("qwen-sft", "qwensft"):
+        generator = QwenSFTCommandGenerator(
+            adapter_path=adapter_path,
+            base_model_name=model_name,
+        )
     else:
         raise ValueError(
-            f"Unsupported provider '{provider}'. Supported providers are: 'mock', 'ollama', 'groq'."
+            f"Unsupported provider '{provider}'. Supported providers are: 'mock', 'ollama', 'groq', 'qwen-sft'."
         )
 
     return RAGPipeline(retriever=retriever, generator=generator)
@@ -327,14 +334,19 @@ def main(argv: Optional[List[str]] = None, input_func=None, print_func=None) -> 
     )
     parser.add_argument(
         "--provider",
-        choices=["mock", "ollama", "groq"],
+        choices=["mock", "ollama", "groq", "qwen-sft"],
         default="mock",
-        help="Model provider in RAG mode ('mock', 'ollama', or 'groq'). Default: mock."
+        help="Model provider in RAG mode ('mock', 'ollama', 'groq', or 'qwen-sft'). Default: mock."
+    )
+    parser.add_argument(
+        "--adapter-path",
+        default=None,
+        help="Path to fine-tuned LoRA adapter directory for 'qwen-sft' provider."
     )
     parser.add_argument(
         "--model",
         default=None,
-        help="Model name for provider. Defaults: qwen2.5-coder:1.5b (ollama), qwen/qwen3.8-27b (groq)."
+        help="Model name for provider. Defaults: qwen2.5-coder:1.5b (ollama), qwen/qwen3.8-27b (groq), Qwen/Qwen2.5-Coder-3B-Instruct (qwen-sft)."
     )
     parser.add_argument(
         "--ollama-url",
@@ -352,6 +364,7 @@ def main(argv: Optional[List[str]] = None, input_func=None, print_func=None) -> 
                 provider=args.provider,
                 model_name=args.model,
                 base_url=args.ollama_url,
+                adapter_path=args.adapter_path,
             )
         except Exception as exc:
             print(f"RAG initialization error: {exc}", file=sys.stderr)

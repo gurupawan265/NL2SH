@@ -417,3 +417,131 @@ class GroqCommandGenerator(BaseCommandGenerator):
             raise RuntimeError(f"Groq API request failed: {clean_msg}") from exc
 
 
+class QwenSFTCommandGenerator(BaseCommandGenerator):
+    """
+    Local fine-tuned Qwen model provider for NL2SH command generation.
+    Loads base Qwen2.5-Coder model and applies PEFT fine-tuned LoRA adapter.
+    Uses lazy initialization so importing does not trigger heavy weight downloads.
+    """
+
+    DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-Coder-3B-Instruct"
+
+    def __init__(
+        self,
+        adapter_path: Optional[str] = None,
+        base_model_name: Optional[str] = None,
+        device: str = "auto",
+        load_in_4bit: bool = False,
+        max_new_tokens: int = 64,
+        prompt_builder: Optional[PromptBuilder] = None,
+        validator: Optional[CommandValidator] = None,
+        model: Optional[Any] = None,
+        tokenizer: Optional[Any] = None,
+    ) -> None:
+        model_id = base_model_name or self.DEFAULT_BASE_MODEL
+        super().__init__(
+            provider_name="qwen-sft",
+            model_name=model_id,
+            prompt_builder=prompt_builder,
+            validator=validator,
+        )
+        self.adapter_path = adapter_path
+        self.device = device
+        self.load_in_4bit = load_in_4bit
+        self.max_new_tokens = max_new_tokens
+
+        # Pre-instantiated model and tokenizer (injected in unit tests or after load)
+        self._model = model
+        self._tokenizer = tokenizer
+
+    def _ensure_loaded(self) -> None:
+        """Lazily load base model and PEFT adapter upon first inference call."""
+        if self._model is not None and self._tokenizer is not None:
+            return
+
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        print(f"Loading Qwen SFT tokenizer: {self.model_name}...")
+        self._tokenizer = AutoTokenizer.from_pretrained(
+            self.model_name,
+            trust_remote_code=True,
+            padding_side="left",
+        )
+        if self._tokenizer.pad_token is None:
+            self._tokenizer.pad_token = self._tokenizer.eos_token
+
+        model_kwargs: Dict[str, Any] = {
+            "trust_remote_code": True,
+            "torch_dtype": torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16,
+        }
+
+        if self.load_in_4bit and torch.cuda.is_available():
+            from transformers import BitsAndBytesConfig
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+            )
+            model_kwargs["device_map"] = "auto"
+        elif torch.cuda.is_available():
+            model_kwargs["device_map"] = "auto"
+
+        print(f"Loading base Qwen model: {self.model_name}...")
+        base_model = AutoModelForCausalLM.from_pretrained(self.model_name, **model_kwargs)
+
+        if self.adapter_path and Path(self.adapter_path).exists():
+            from peft import PeftModel
+            print(f"Applying fine-tuned LoRA adapter from {self.adapter_path}...")
+            self._model = PeftModel.from_pretrained(base_model, self.adapter_path)
+        else:
+            self._model = base_model
+
+        self._model.eval()
+
+    def _call_model(self, prompt: str) -> str:
+        self._ensure_loaded()
+        start_time = time.perf_counter()
+
+        # Format input prompt into Qwen ChatML if not already formatted
+        if "<|im_start|>" not in prompt:
+            formatted_prompt = (
+                f"<|im_start|>system\n{self.prompt_builder.system_prompt}<|im_end|>\n"
+                f"<|im_start|>user\n{prompt.strip()}<|im_end|>\n"
+                f"<|im_start|>assistant\n"
+            )
+        else:
+            formatted_prompt = prompt
+
+        if hasattr(self._tokenizer, "__call__") and hasattr(self._model, "generate"):
+            import torch
+            inputs = self._tokenizer(formatted_prompt, return_tensors="pt")
+            device = getattr(self._model, "device", "cpu")
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+
+            prompt_tokens = inputs["input_ids"].shape[1]
+            with torch.no_grad():
+                outputs = self._model.generate(
+                    **inputs,
+                    max_new_tokens=self.max_new_tokens,
+                    do_sample=False,
+                    pad_token_id=getattr(self._tokenizer, "pad_token_id", None),
+                )
+
+            comp_tokens = outputs[0].shape[0] - prompt_tokens
+            raw_output = self._tokenizer.decode(
+                outputs[0][prompt_tokens:],
+                skip_special_tokens=True,
+            )
+            self.last_token_usage = {
+                "prompt_tokens": int(prompt_tokens),
+                "completion_tokens": int(comp_tokens),
+                "total_tokens": int(prompt_tokens + comp_tokens),
+            }
+            self.last_latency = round(time.perf_counter() - start_time, 4)
+            return raw_output.strip()
+
+        raise RuntimeError("QwenSFT model or tokenizer is not properly initialized.")
+
+
+

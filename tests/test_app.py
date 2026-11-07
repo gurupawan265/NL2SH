@@ -513,4 +513,23 @@ def test_main_cli_groq_provider_selection(mock_vector_store, monkeypatch):
     mock_session.close.assert_called_once()
 
 
+def test_main_cli_qwen_sft_provider_selection(mock_vector_store, monkeypatch):
+    """Test CLI main() with --mode rag and --provider qwen-sft."""
+    store, emb = mock_vector_store
+
+    mock_pipeline = MagicMock()
+    mock_pipeline.generator.provider_name = "qwen-sft"
+    monkeypatch.setattr("app.init_rag_pipeline", lambda **kwargs: mock_pipeline)
+
+    mock_session = MagicMock()
+    mock_session.current_dir = "/workspace"
+    monkeypatch.setattr("app.SessionSandbox", lambda: mock_session)
+
+    inputs = iter(["exit"])
+    main(["--mode", "rag", "--provider", "qwen-sft", "--adapter-path", "adapters/dummy"], input_func=lambda _: next(inputs))
+
+    mock_session.close.assert_called_once()
+
+
+
 

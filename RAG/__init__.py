@@ -17,6 +17,7 @@ from .generator import (
     MockCommandGenerator,
     OllamaCommandGenerator,
     GroqCommandGenerator,
+    QwenSFTCommandGenerator,
     load_env_file,
 )
 from .pipeline import RAGPipeline
@@ -44,6 +45,7 @@ __all__ = [
     "MockCommandGenerator",
     "OllamaCommandGenerator",
     "GroqCommandGenerator",
+    "QwenSFTCommandGenerator",
     "load_env_file",
     "RAGPipeline",
 ]
